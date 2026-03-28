@@ -44,6 +44,12 @@ class User(Base):
         lazy="selectin",
     )
 
+    sessions: Mapped[list["ChatSession"]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
 
 class ChatHistory(Base):
     __tablename__ = "chat_history"
@@ -94,6 +100,13 @@ class ChatHistory(Base):
         index=True,
     )
 
+    session_id: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        ForeignKey("chat_session.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=False),
         default=datetime.utcnow,
@@ -103,6 +116,7 @@ class ChatHistory(Base):
 
     user: Mapped[Optional["User"]] = relationship(back_populates="chat_history")
     api_key: Mapped[Optional["APIKey"]] = relationship(back_populates="chat_history")
+    session: Mapped[Optional["ChatSession"]] = relationship(back_populates="chat_history")
 
 
 class APIKey(Base):
@@ -136,5 +150,38 @@ class APIKey(Base):
 
     chat_history: Mapped[list["ChatHistory"]] = relationship(
         back_populates="api_key",
+        lazy="selectin",
+    )
+
+
+class ChatSession(Base):
+    __tablename__ = "chat_session"
+
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=True, comment="Primary key."
+    )
+
+    title: Mapped[Optional[str]] = mapped_column(
+        String(200), nullable=True, comment="Session title."
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(),
+        ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=False),
+        default=datetime.utcnow,
+        comment="Session creation date.",
+    )
+
+    user: Mapped["User"] = relationship(back_populates="sessions")
+
+    chat_history: Mapped[list["ChatHistory"]] = relationship(
+        back_populates="session",
+        cascade="all, delete-orphan",
         lazy="selectin",
     )
